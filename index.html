@@ -204,6 +204,7 @@ textarea{resize:vertical;min-height:70px;line-height:1.6}
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 /* ==========================================================
    التقويمان وأنواعهما — عدّل الأسماء والألوان من هني وبس
@@ -224,7 +225,6 @@ const BOARDS = {
     types:[
       { id:'event',    name:'إيميل تعليمي',      color:'#1F5F5B' },
       { id:'campaign', name:'إيميل تشجيعي',        color:'#C2601F' },
-      { id:'َQuestions', name:'سؤال الاسبوع',        color:'#E3B23C' },
       { id:'shoot',    name:'فعاليات ومسابقات',       color:'#7A3E8F' },
       { id:'delivery', name:'مبادرات اسعاد الموظفين',  color:'#8E2B2B' }
     ]
@@ -234,6 +234,14 @@ const BOARDS = {
 const MONTHS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
 const DAYS   = ['الأحد','الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
 const KEY = 'my-calendar-v2', OLDKEY = 'my-calendar-tasks';
+
+/* ---------- الاتصال بـ Supabase (تخزين مشترك بين كل الأجهزة) ---------- */
+const SUPABASE_URL = 'https://dwjcukzxtqcofbbkzoax.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR3amN1a3p4dHFjb2ZiYmt6b2F4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYyNDYxNDIsImV4cCI6MjEwMTgyMjE0Mn0.oDDlaZ2jWWSNXJcboxGrKEZFsEVbUXz9z8jc_0Aa1-U';
+const sbClient = (window.supabase && SUPABASE_URL)
+  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  : null;
+let pendingDeletes = new Set();
 
 let data = { tasks:{}, events:{} };
 let board = 'tasks';
@@ -248,24 +256,66 @@ const key = d => d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+
 const todayKey = key(new Date());
 const esc = s => String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
-/* ---------- التخزين ---------- */
+/* ---------- التخزين (Supabase + نسخة محلية احتياطية) ---------- */
+const sortByTime = arr => arr.sort((a,b)=>(a.time||'99').localeCompare(b.time||'99'));
+
 const store = {
   async load(){
+    if(sbClient){
+      try{
+        const { data: rows, error } = await sbClient.from('calendar_items').select('*');
+        if(error) throw error;
+        const out = { tasks:{}, events:{} };
+        (rows||[]).forEach(r=>{
+          const b = (r.board === 'events') ? 'events' : 'tasks';
+          const k = r.item_date;
+          (out[b][k] = out[b][k] || []).push({
+            id:r.id, title:r.title, type:r.type,
+            time:r.item_time||'', notes:r.notes||'', to:r.mail_to||'', done:!!r.done
+          });
+        });
+        Object.keys(out).forEach(b=> Object.keys(out[b]).forEach(k=> sortByTime(out[b][k])));
+        try{ localStorage.setItem(KEY, JSON.stringify(out)); }catch(e){}
+        return out;
+      }catch(e){ console.warn('تعذّر الاتصال بقاعدة البيانات، جاري استخدام آخر نسخة محفوظة بالجهاز', e); }
+    }
     let raw = null;
-    try{ if(window.storage){ const r = await window.storage.get(KEY); raw = r && r.value; } }catch(e){}
-    if(!raw){ try{ raw = localStorage.getItem(KEY); }catch(e){} }
+    try{ raw = localStorage.getItem(KEY); }catch(e){}
     if(raw){ try{ const o = JSON.parse(raw); return { tasks:o.tasks||{}, events:o.events||{} }; }catch(e){} }
-    // ترحيل بيانات النسخة الأولى إن وجدت
     try{ const old = localStorage.getItem(OLDKEY); if(old) return { tasks:JSON.parse(old), events:{} }; }catch(e){}
     return { tasks:{}, events:{} };
   },
   async save(obj){
     if(READONLY) return;
-    const s = JSON.stringify(obj);
-    try{ if(window.storage){ await window.storage.set(KEY, s); } }catch(e){}
-    try{ localStorage.setItem(KEY, s); }catch(e){}
+    try{ localStorage.setItem(KEY, JSON.stringify(obj)); }catch(e){}
+    if(!sbClient) return;
+    try{
+      const rows = [];
+      Object.keys(obj).forEach(b=> Object.keys(obj[b]).forEach(k=>
+        obj[b][k].forEach(t=> rows.push({
+          id:t.id, board:b, item_date:k, title:t.title, type:t.type,
+          item_time:t.time||null, notes:t.notes||null, mail_to:t.to||null, done:!!t.done
+        }))
+      ));
+      if(rows.length) await sbClient.from('calendar_items').upsert(rows, { onConflict:'id' });
+      if(pendingDeletes.size){
+        const ids = [...pendingDeletes]; pendingDeletes.clear();
+        await sbClient.from('calendar_items').delete().in('id', ids);
+      }
+    }catch(e){ console.warn('تعذّر حفظ التغيير بقاعدة البيانات المشتركة', e); }
   }
 };
+
+function subscribeRealtime(){
+  if(!sbClient) return;
+  sbClient.channel('calendar_items-sync')
+    .on('postgres_changes', { event:'*', schema:'public', table:'calendar_items' }, async ()=>{
+      data = await store.load();
+      render();
+      if(document.getElementById('overlay').classList.contains('open')) drawTasks();
+    })
+    .subscribe();
+}
 
 /* ---------- التبويبات ---------- */
 function drawTabs(){
@@ -424,6 +474,7 @@ function drawTasks(){
     D()[openDate].find(x=>x.id===el.dataset.done).done = el.checked; persist();
   });
   box.querySelectorAll('[data-del]').forEach(el=> el.onclick = ()=>{
+    pendingDeletes.add(el.dataset.del);
     D()[openDate] = D()[openDate].filter(x=>x.id!==el.dataset.del);
     if(!D()[openDate].length) delete D()[openDate];
     resetForm(); persist();
@@ -512,7 +563,7 @@ document.getElementById('shareBtn').onclick = ()=>{
 /* ---------- تشغيل ---------- */
 (async ()=>{
   if(window.__SEED__){ data = window.__SEED__; READONLY = !!window.__READONLY__; document.body.classList.add('readonly'); }
-  else data = await store.load();
+  else{ data = await store.load(); subscribeRealtime(); }
   pickedType = B().types[0].id;
   drawTabs(); drawChips(); render();
 })();
