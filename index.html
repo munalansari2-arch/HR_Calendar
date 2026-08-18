@@ -82,7 +82,7 @@ button:focus-visible,.day:focus-visible{outline:2px solid var(--accent);outline-
 .hint button{background:none;border:none;color:var(--accent);font-family:inherit;font-size:12.5px;font-weight:700;cursor:pointer;text-decoration:underline;padding:0 5px}
 .ro-badge{display:none;background:#f0ecf3;color:var(--accent);text-align:center;padding:9px;font-size:13px;font-weight:700;margin-bottom:18px;border:1.5px solid var(--accent)}
 body.readonly .ro-badge{display:block}
-body.readonly .hint .own,body.readonly form,body.readonly .task input[type=checkbox]{display:none!important}
+body.readonly .hint .own,body.readonly form,body.readonly .task input[type=checkbox],body.readonly .quick-toggle,body.readonly .quick-panel,body.readonly .own{display:none!important}
 .acts button.mail{color:#1F5F5B}
 
 /* ===== النافذة ===== */
@@ -120,6 +120,53 @@ textarea{resize:vertical;min-height:70px;line-height:1.6}
 .btn{flex:1;padding:12px;border:none;background:var(--accent);color:#fff;font-family:inherit;font-size:15px;font-weight:700;cursor:pointer}
 .btn.ghost{background:#fff;color:#555;border:1.5px solid var(--line);flex:0 0 100px}
 
+/* ===== لوحة الإضافة السريعة ===== */
+.quick-toggle{display:flex;align-items:center;gap:8px;border:1.5px solid var(--accent);background:#fff;color:var(--accent);padding:0 18px;height:42px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:16px}
+.quick-toggle:hover{background:var(--soft)}
+.quick-panel{display:none;border:1.5px solid var(--accent);background:var(--soft);padding:16px 18px 18px;margin-bottom:22px}
+.quick-panel.open{display:block}
+.quick-panel h4{margin:0 0 12px;font-size:14px;font-weight:800;color:var(--accent)}
+.quick-panel .qrow{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
+.quick-panel .qrow>div{flex:1;min-width:150px}
+.quick-panel .qrow>div.qdate{flex:0 0 160px;min-width:140px}
+.quick-panel .qrow>button{flex:0 0 auto;height:42px;padding:0 22px}
+.day.flash{animation:flashDay 1.1s ease}
+@keyframes flashDay{0%{background:var(--accent);border-color:var(--accent)}100%{background:#fff}}
+
+/* ===== العمودين والشريط الجانبي ===== */
+.layout{display:grid;grid-template-columns:1fr 280px;gap:28px;align-items:start}
+.side{position:sticky;top:20px;display:flex;flex-direction:column;gap:18px}
+.side-box{border:1.5px solid var(--line);padding:14px 16px}
+.side-box h3{margin:0 0 12px;font-size:13.5px;font-weight:800;color:var(--accent)}
+.side-empty{color:var(--muted);font-size:12.5px;margin:0}
+.bl-group{margin-bottom:12px}
+.bl-group:last-child{margin-bottom:0}
+.bl-head{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:800;margin-bottom:6px}
+.bl-head i{width:9px;height:9px;flex-shrink:0}
+.bl-head span{color:var(--muted);font-weight:500}
+.bl-item{font-size:12.5px;font-weight:600;padding:6px 8px;border:1px solid var(--line);margin-bottom:5px;cursor:pointer;line-height:1.4}
+.bl-item:hover{background:var(--soft)}
+.bl-item.done{text-decoration:line-through;opacity:.5}
+.learn-add{display:flex;gap:6px;margin-bottom:12px}
+.learn-add input{flex:1;padding:8px 10px;border:1.5px solid var(--line);font-family:inherit;font-size:13px}
+.learn-add button{width:38px;border:none;background:var(--accent);color:#fff;font-size:18px;cursor:pointer;font-family:inherit;line-height:1}
+.learn-item{display:flex;align-items:center;gap:8px;font-size:13px;padding:5px 0;border-bottom:1px solid var(--line)}
+.learn-item:last-child{border-bottom:none}
+.learn-item input[type=checkbox]{width:15px;height:15px;accent-color:var(--accent);flex-shrink:0;cursor:pointer}
+.learn-item span{flex:1;line-height:1.4}
+.learn-item.done span{text-decoration:line-through;opacity:.5}
+.learn-item button{background:none;border:none;color:#999;font-size:17px;cursor:pointer;font-family:inherit;line-height:1;padding:0 2px}
+.learn-item button:hover{color:#8E2B2B}
+
+@media(max-width:900px){
+  .layout{grid-template-columns:1fr}
+  .side{position:static}
+}
+@media(max-width:640px){
+  .quick-panel .qrow>div,.quick-panel .qrow>div.qdate{flex:1 1 100%}
+  .quick-panel .qrow>button{width:100%}
+}
+
 @media(max-width:640px){
   .wrap{padding:14px 10px 40px}
   .weekdays,.grid{gap:5px}
@@ -140,6 +187,20 @@ textarea{resize:vertical;min-height:70px;line-height:1.6}
   <div class="ro-badge">نسخة للعرض فقط — تقدر تتصفح وتضغط على أي يوم تشوف التفاصيل، بس التعديل مقفول.</div>
 
   <div class="tabs" id="tabs"></div>
+
+  <button class="quick-toggle own" id="quickToggle">+ إضافة سريعة (اكتب عدة مهام وحدة ورا الثانية)</button>
+  <div class="quick-panel own" id="quickPanel">
+    <h4>إضافة سريعة</h4>
+    <div class="qrow" style="margin-bottom:12px">
+      <div><input type="text" id="qTitle" placeholder="اكتب عنوان المهمة واضغط Enter..." autocomplete="off"></div>
+      <div class="qdate"><input type="date" id="qDate"></div>
+      <button type="button" class="btn" id="qAdd">إضافة والانتقال لليوم</button>
+    </div>
+    <div class="chips" id="qChips"></div>
+  </div>
+
+  <div class="layout">
+  <div class="main-col">
 
   <div class="topbar">
     <div class="nav">
@@ -171,6 +232,25 @@ textarea{resize:vertical;min-height:70px;line-height:1.6}
     <button id="shareBtn">تصدير نسخة للمشاركة</button>·<button id="exportBtn">حفظ نسخة احتياطية</button>·<button id="importBtn">استرجاع نسخة</button>
     <input type="file" id="importFile" accept=".json" hidden></span>
   </p>
+
+  </div>
+
+  <aside class="side">
+    <section class="side-box">
+      <h3>مهام بدون تاريخ</h3>
+      <div id="backlogList"></div>
+      <p class="side-empty" id="backlogEmpty">ما في مهام بدون تاريخ.</p>
+    </section>
+    <section class="side-box">
+      <h3>قائمة الأشياء أبي أتعلمها</h3>
+      <div class="learn-add own">
+        <input type="text" id="learnInput" placeholder="اكتب شي تبي تتعلمه...">
+        <button type="button" id="learnAdd">+</button>
+      </div>
+      <div id="learnList"></div>
+    </section>
+  </aside>
+  </div>
 </div>
 
 <div class="overlay" id="overlay">
@@ -188,7 +268,7 @@ textarea{resize:vertical;min-height:70px;line-height:1.6}
         <label style="margin-top:12px">النوع</label>
         <div class="chips" id="chips"></div>
         <div class="row">
-          <div><label for="tDate">التاريخ</label><input type="date" id="tDate"></div>
+          <div><label for="tDate">التاريخ (سيبها فاضية = بدون تاريخ)</label><input type="date" id="tDate"></div>
           <div><label for="tTime">الوقت (اختياري)</label><input type="time" id="tTime"></div>
         </div>
         <label for="tNotes">التفاصيل</label>
@@ -234,6 +314,9 @@ const BOARDS = {
 const MONTHS = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
 const DAYS   = ['الأحد','الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
 const KEY = 'my-calendar-v2', OLDKEY = 'my-calendar-tasks';
+const UNDATED_KEY = 'undated';      // المفتاح المحلي للمهام بدون تاريخ
+const UNDATED_DATE = '1900-01-01';  // تاريخ وهمي نخزنه بقاعدة البيانات لهالمهام
+const LEARN_DATE   = '1900-01-02';  // تاريخ وهمي لعناصر قائمة التعلم
 
 /* ---------- الاتصال بـ Supabase (تخزين مشترك بين كل الأجهزة) ---------- */
 const SUPABASE_URL = 'https://dwjcukzxtqcofbbkzoax.supabase.co';
@@ -243,7 +326,7 @@ const sbClient = (window.supabase && SUPABASE_URL)
   : null;
 let pendingDeletes = new Set();
 
-let data = { tasks:{}, events:{} };
+let data = { tasks:{}, events:{}, learning:[] };
 let board = 'tasks';
 let view = new Date();
 let openDate = null, editingId = null, pickedType = null;
@@ -265,25 +348,29 @@ const store = {
       try{
         const { data: rows, error } = await sbClient.from('calendar_items').select('*');
         if(error) throw error;
-        const out = { tasks:{}, events:{} };
+        const out = { tasks:{}, events:{}, learning:[] };
         (rows||[]).forEach(r=>{
+          if(r.board === 'learning'){
+            out.learning.push({ id:r.id, title:r.title, done:!!r.done });
+            return;
+          }
           const b = (r.board === 'events') ? 'events' : 'tasks';
-          const k = r.item_date;
+          const k = (r.item_date === UNDATED_DATE) ? UNDATED_KEY : r.item_date;
           (out[b][k] = out[b][k] || []).push({
             id:r.id, title:r.title, type:r.type,
             time:r.item_time||'', notes:r.notes||'', to:r.mail_to||'', done:!!r.done
           });
         });
-        Object.keys(out).forEach(b=> Object.keys(out[b]).forEach(k=> sortByTime(out[b][k])));
+        Object.keys(out).forEach(b=>{ if(b!=='learning') Object.keys(out[b]).forEach(k=> sortByTime(out[b][k])); });
         try{ localStorage.setItem(KEY, JSON.stringify(out)); }catch(e){}
         return out;
       }catch(e){ console.warn('تعذّر الاتصال بقاعدة البيانات، جاري استخدام آخر نسخة محفوظة بالجهاز', e); }
     }
     let raw = null;
     try{ raw = localStorage.getItem(KEY); }catch(e){}
-    if(raw){ try{ const o = JSON.parse(raw); return { tasks:o.tasks||{}, events:o.events||{} }; }catch(e){} }
-    try{ const old = localStorage.getItem(OLDKEY); if(old) return { tasks:JSON.parse(old), events:{} }; }catch(e){}
-    return { tasks:{}, events:{} };
+    if(raw){ try{ const o = JSON.parse(raw); return { tasks:o.tasks||{}, events:o.events||{}, learning:o.learning||[] }; }catch(e){} }
+    try{ const old = localStorage.getItem(OLDKEY); if(old) return { tasks:JSON.parse(old), events:{}, learning:[] }; }catch(e){}
+    return { tasks:{}, events:{}, learning:[] };
   },
   async save(obj){
     if(READONLY) return;
@@ -291,12 +378,17 @@ const store = {
     if(!sbClient) return;
     try{
       const rows = [];
-      Object.keys(obj).forEach(b=> Object.keys(obj[b]).forEach(k=>
+      ['tasks','events'].forEach(b=> Object.keys(obj[b]||{}).forEach(k=>{
+        const realDate = (k===UNDATED_KEY) ? UNDATED_DATE : k;
         obj[b][k].forEach(t=> rows.push({
-          id:t.id, board:b, item_date:k, title:t.title, type:t.type,
+          id:t.id, board:b, item_date:realDate, title:t.title, type:t.type,
           item_time:t.time||null, notes:t.notes||null, mail_to:t.to||null, done:!!t.done
-        }))
-      ));
+        }));
+      }));
+      (obj.learning||[]).forEach(t=> rows.push({
+        id:t.id, board:'learning', item_date:LEARN_DATE, title:t.title, type:'learn',
+        item_time:null, notes:null, mail_to:null, done:!!t.done
+      }));
       if(rows.length) await sbClient.from('calendar_items').upsert(rows, { onConflict:'id' });
       if(pendingDeletes.size){
         const ids = [...pendingDeletes]; pendingDeletes.clear();
@@ -325,9 +417,53 @@ function drawTabs(){
     board = el.dataset.b;
     document.documentElement.style.setProperty('--accent', B().accent);
     pickedType = B().types[0].id;
+    quickType = B().types[0].id; drawQuickChips();
     drawTabs(); render();
   });
 }
+
+/* ---------- لوحة الإضافة السريعة ---------- */
+let quickType = null;
+
+function drawQuickChips(){
+  document.getElementById('qChips').innerHTML = B().types.map(t=>{
+    const on = t.id===quickType;
+    return `<button type="button" class="chip ${on?'on':''}" data-qt="${t.id}"
+      style="${on?`background:${t.color};border-color:${t.color};color:#fff`:''}">
+      <i style="background:${on?'#fff':t.color}"></i>${t.name}</button>`;
+  }).join('');
+  document.querySelectorAll('#qChips .chip').forEach(c=> c.onclick = ()=>{ quickType = c.dataset.qt; drawQuickChips(); });
+}
+
+document.getElementById('quickToggle').onclick = ()=>{
+  document.getElementById('quickPanel').classList.toggle('open');
+  document.getElementById('qTitle').focus();
+};
+
+function jumpToDate(k){
+  const [y,m] = k.split('-').map(Number);
+  view = new Date(y, m-1, 1);
+  render();
+  requestAnimationFrame(()=>{
+    const cell = document.querySelector(`.day[data-k="${k}"]`);
+    if(cell){ cell.classList.add('flash'); cell.scrollIntoView({behavior:'smooth', block:'center'}); setTimeout(()=>cell.classList.remove('flash'), 1100); }
+  });
+}
+
+async function quickAdd(){
+  const titleEl = document.getElementById('qTitle');
+  const title = titleEl.value.trim();
+  if(!title) return;
+  const dateEl = document.getElementById('qDate');
+  const target = dateEl.value || UNDATED_KEY;
+  (D()[target] = D()[target] || []).push({ id:String(Date.now())+Math.random().toString(16).slice(2,6), title, type:quickType, time:'', notes:'', to:'', done:false });
+  sortDay(target);
+  await store.save(data);
+  if(target === UNDATED_KEY){ render(); } else { jumpToDate(target); }
+  titleEl.value = ''; titleEl.focus();
+}
+document.getElementById('qAdd').onclick = quickAdd;
+document.getElementById('qTitle').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); quickAdd(); } });
 
 /* ---------- التقويم ---------- */
 function render(){
@@ -356,7 +492,47 @@ function render(){
   document.getElementById('grid').innerHTML = html;
   wireGrid();
   drawStats();
+  drawBacklog();
+  drawLearning();
   document.getElementById('legend').innerHTML = B().types.map(t=>`<div><i style="background:${t.color}"></i>${t.name}</div>`).join('');
+}
+
+/* ---------- الشريط الجانبي: مهام بدون تاريخ ---------- */
+function drawBacklog(){
+  const list = D()[UNDATED_KEY] || [];
+  const box = document.getElementById('backlogList');
+  const empty = document.getElementById('backlogEmpty');
+  if(!list.length){ box.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+  const groups = B().types.map(ty=>({ ty, items:list.filter(t=>t.type===ty.id) })).filter(g=>g.items.length);
+  box.innerHTML = groups.map(g=>`
+    <div class="bl-group">
+      <div class="bl-head"><i style="background:${g.ty.color}"></i>${g.ty.name} <span>(${g.items.length})</span></div>
+      ${g.items.map(t=>`<div class="bl-item ${t.done?'done':''}">${esc(t.title)}</div>`).join('')}
+    </div>`).join('');
+  box.querySelectorAll('.bl-item').forEach(el=> el.onclick = ()=> openDay(UNDATED_KEY));
+}
+
+/* ---------- الشريط الجانبي: قائمة الأشياء أبي أتعلمها ---------- */
+function drawLearning(){
+  const box = document.getElementById('learnList');
+  const list = data.learning || [];
+  if(!list.length){ box.innerHTML = '<p class="side-empty">لسا ما ضفت شي.</p>'; return; }
+  box.innerHTML = list.map(t=>`
+    <div class="learn-item ${t.done?'done':''}">
+      <input type="checkbox" class="own" data-ldone="${t.id}" ${t.done?'checked':''}>
+      <span>${esc(t.title)}</span>
+      <button type="button" class="own" data-ldel="${t.id}" title="حذف">×</button>
+    </div>`).join('');
+  box.querySelectorAll('[data-ldone]').forEach(el=> el.onchange = async ()=>{
+    data.learning.find(x=>x.id===el.dataset.ldone).done = el.checked;
+    await store.save(data); drawLearning();
+  });
+  box.querySelectorAll('[data-ldel]').forEach(el=> el.onclick = async ()=>{
+    pendingDeletes.add(el.dataset.ldel);
+    data.learning = data.learning.filter(x=>x.id!==el.dataset.ldel);
+    await store.save(data); drawLearning();
+  });
 }
 
 /* ---------- السحب والإفلات ---------- */
@@ -427,9 +603,14 @@ function drawStats(){
 /* ---------- نافذة اليوم ---------- */
 function openDay(k){
   openDate = k;
-  const [y,m,d] = k.split('-').map(Number);
-  document.getElementById('dTitle').textContent = `${d} ${MONTHS[m-1]} ${y}`;
-  document.getElementById('dSub').textContent = DAYS[new Date(y,m-1,d).getDay()] + ' · ' + B().label;
+  if(k === UNDATED_KEY){
+    document.getElementById('dTitle').textContent = 'مهام بدون تاريخ';
+    document.getElementById('dSub').textContent = B().label;
+  }else{
+    const [y,m,d] = k.split('-').map(Number);
+    document.getElementById('dTitle').textContent = `${d} ${MONTHS[m-1]} ${y}`;
+    document.getElementById('dSub').textContent = DAYS[new Date(y,m-1,d).getDay()] + ' · ' + B().label;
+  }
   resetForm();
   drawTasks();
   document.getElementById('overlay').classList.add('open');
@@ -504,7 +685,7 @@ function drawChips(){
 function resetForm(){
   editingId = null;
   document.getElementById('form').reset();
-  document.getElementById('tDate').value = openDate || '';
+  document.getElementById('tDate').value = (openDate && openDate!==UNDATED_KEY) ? openDate : '';
   pickedType = B().types[0].id; drawChips();
   document.getElementById('formTitle').textContent = 'إضافة جديدة';
   document.getElementById('saveBtn').textContent = 'إضافة';
@@ -560,12 +741,23 @@ document.getElementById('shareBtn').onclick = ()=>{
   download('calendar-view.html', html, 'text/html');
 };
 
+async function learnAddFn(){
+  const el = document.getElementById('learnInput');
+  const v = el.value.trim(); if(!v) return;
+  (data.learning = data.learning||[]).push({ id:String(Date.now())+Math.random().toString(16).slice(2,6), title:v, done:false });
+  el.value=''; el.focus();
+  await store.save(data); drawLearning();
+}
+document.getElementById('learnAdd').onclick = learnAddFn;
+document.getElementById('learnInput').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); learnAddFn(); } });
+
 /* ---------- تشغيل ---------- */
 (async ()=>{
   if(window.__SEED__){ data = window.__SEED__; READONLY = !!window.__READONLY__; document.body.classList.add('readonly'); }
   else{ data = await store.load(); subscribeRealtime(); }
   pickedType = B().types[0].id;
-  drawTabs(); drawChips(); render();
+  quickType = B().types[0].id;
+  drawTabs(); drawChips(); drawQuickChips(); render();
 })();
 </script>
 </body>
